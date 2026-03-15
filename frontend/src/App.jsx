@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createStompClient, subscribeBlueprint } from './lib/stompClient.js'
 import { createSocket } from './lib/socketIoClient.js'
+import AuthorPanel from './AuthorPanel.jsx'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080' // Spring
 const IO_BASE  = import.meta.env.VITE_IO_BASE  ?? 'http://localhost:3001' // Node/Socket.IO
@@ -10,6 +11,7 @@ export default function App() {
   const [author, setAuthor] = useState('juan')
   const [name, setName] = useState('plano-1')
   const [errorMsg, setErrorMsg] = useState('')
+  const [localPoints, setLocalPoints] = useState([])
   const canvasRef = useRef(null)
 
   const stompRef = useRef(null)
@@ -23,17 +25,19 @@ export default function App() {
         if (!r.ok) throw new Error('Blueprint no encontrado');
         return r.json();
       })
-      .then(drawAll)
+      .then(bp => {
+        setLocalPoints(bp?.points || bp?.data?.points || []);
+        drawAll(bp);
+      })
       .catch(() => {
+        setLocalPoints([]);
         drawAll({ points: [] });
         setErrorMsg('Blueprint no encontrado para ese autor/plano');
       });
   }, [tech, author, name])
 
   function drawAll(bp) {
-    // Soporta respuesta { code, message, data }
     const points = bp?.points || bp?.data?.points || [];
-    console.log('drawAll:', points);
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0,0,600,400);
@@ -43,7 +47,6 @@ export default function App() {
         if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
       });
       ctx.stroke();
-      // Dibuja un círculo en cada punto
       points.forEach((p) => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
@@ -52,6 +55,11 @@ export default function App() {
       });
     }
   }
+
+  // Redibujar cuando localPoints cambie
+  useEffect(() => {
+    drawAll({ points: localPoints });
+  }, [localPoints])
 
   useEffect(() => {
     if (typeof unsubRef.current === 'function') {
@@ -67,7 +75,8 @@ export default function App() {
       client.onConnect = () => {
         unsubRef.current = subscribeBlueprint(client, author, name, (upd)=> {
           console.log('STOMP update:', upd);
-          drawAll({ points: upd.points })
+          // Actualizar puntos locales para redibujar correctamente
+          setLocalPoints(upd.points || []);
         })
       }
       client.activate()
@@ -78,7 +87,8 @@ export default function App() {
       s.emit('join-room', room)
       s.on('blueprint-update', (upd)=> {
         console.log('Socket.IO update:', upd);
-        drawAll({ points: upd.points })
+        // Actualizar puntos locales para redibujar correctamente
+        setLocalPoints(upd.points || []);
       })
     }
     return () => {
@@ -92,15 +102,73 @@ export default function App() {
   }, [tech, author, name])
 
   function onClick(e) {
-    const rect = e.target.getBoundingClientRect()
-    const point = { x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) }
+    const rect = e.target.getBoundingClientRect();
+    const point = { x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) };
+    // Agregar el nuevo punto localmente
+    setLocalPoints(prev => {
+      const updated = [...prev, point];
+      // Enviar todos los puntos por STOMP para sincronización
+      if (tech === 'stomp' && stompRef.current?.connected) {
+        stompRef.current.publish({ destination: '/app/draw', body: JSON.stringify({ author, name, points: updated }) });
+      } else if (tech === 'socketio' && socketRef.current?.connected) {
+        const room = `blueprints.${author}.${name}`;
+        socketRef.current.emit('draw-event', { room, author, name, points: updated });
+      }
+      return updated;
+    });
+  }
 
-    if (tech === 'stomp' && stompRef.current?.connected) {
-      stompRef.current.publish({ destination: '/app/draw', body: JSON.stringify({ author, name, point }) })
-    } else if (tech === 'socketio' && socketRef.current?.connected) {
-      const room = `blueprints.${author}.${name}`
-      socketRef.current.emit('draw-event', { room, author, name, point })
-    }
+  function handleCreate() {
+    fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, name, points: localPoints })
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Error al crear');
+        return r.json();
+      })
+      .then(() => {
+        setErrorMsg('Creado exitosamente');
+      })
+      .catch(() => {
+        setErrorMsg('Error al crear');
+      });
+  }
+
+  function handleSave() {
+    fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, name, points: localPoints })
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Error al guardar');
+        return r.json();
+      })
+      .then(() => {
+        setErrorMsg('Guardado exitoso');
+      })
+      .catch(() => {
+        setErrorMsg('Error al guardar');
+      });
+  }
+
+  function handleDelete() {
+    fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`, {
+      method: 'DELETE'
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Error al eliminar');
+        return r.json();
+      })
+      .then(() => {
+        setErrorMsg('Eliminado exitosamente');
+        setLocalPoints([]);
+      })
+      .catch(() => {
+        setErrorMsg('Error al eliminar');
+      });
   }
 
   return (
@@ -113,8 +181,16 @@ export default function App() {
           <option value="socketio">Socket.IO (Node)</option>
         </select>
         <input value={author} onChange={e=>setAuthor(e.target.value)} placeholder="autor"/>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="plano"/>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="plano" />
+        <button onClick={handleCreate} style={{marginLeft:8}}>Crear</button>
+        <button onClick={handleSave} style={{marginLeft:8}}>Guardar</button>
+        <button onClick={handleDelete} style={{marginLeft:8}}>Eliminar</button>
       </div>
+      <AuthorPanel
+        author={author}
+        tech={tech}
+        onSelectBlueprint={setName}
+      />
       {errorMsg && <div style={{color:'red', marginBottom:8}}>{errorMsg}</div>}
       <canvas
         ref={canvasRef}
