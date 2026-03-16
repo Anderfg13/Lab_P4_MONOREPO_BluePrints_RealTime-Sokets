@@ -2,9 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { createStompClient, subscribeBlueprint } from './lib/stompClient.js'
 import { createSocket } from './lib/socketIoClient.js'
 import AuthorPanel from './AuthorPanel.jsx'
+import { blueprintPayloadSchema, drawEventSchema } from './lib/payloadSchemas.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080' // Spring
 const IO_BASE  = import.meta.env.VITE_IO_BASE  ?? 'http://localhost:3001' // Node/Socket.IO
+
+function getValidationError(result) {
+  return result.error?.issues?.[0]?.message ?? 'Payload inválido'
+}
 
 export default function App() {
   const [tech, setTech] = useState('stomp')
@@ -107,9 +112,15 @@ export default function App() {
     // Agregar el nuevo punto localmente
     setLocalPoints(prev => {
       const updated = [...prev, point];
-      // Enviar todos los puntos por STOMP para sincronización
+      const drawResult = drawEventSchema.safeParse({ author, name, point });
+      if (!drawResult.success) {
+        setErrorMsg(getValidationError(drawResult));
+        return updated;
+      }
+
+      // Enviar evento validado de dibujo
       if (tech === 'stomp' && stompRef.current?.connected) {
-        stompRef.current.publish({ destination: '/app/draw', body: JSON.stringify({ author, name, points: updated }) });
+        stompRef.current.publish({ destination: '/app/draw', body: JSON.stringify(drawResult.data) });
       } else if (tech === 'socketio' && socketRef.current?.connected) {
         const room = `blueprints.${author}.${name}`;
         socketRef.current.emit('draw-event', { room, author, name, points: updated });
@@ -119,10 +130,16 @@ export default function App() {
   }
 
   function handleCreate() {
+    const payloadResult = blueprintPayloadSchema.safeParse({ author, name, points: localPoints });
+    if (!payloadResult.success) {
+      setErrorMsg(getValidationError(payloadResult));
+      return;
+    }
+
     fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author, name, points: localPoints })
+      body: JSON.stringify(payloadResult.data)
     })
       .then(r => {
         if (!r.ok) throw new Error('Error al crear');
@@ -137,10 +154,16 @@ export default function App() {
   }
 
   function handleSave() {
+    const payloadResult = blueprintPayloadSchema.safeParse({ author, name, points: localPoints });
+    if (!payloadResult.success) {
+      setErrorMsg(getValidationError(payloadResult));
+      return;
+    }
+
     fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author, name, points: localPoints })
+      body: JSON.stringify(payloadResult.data)
     })
       .then(r => {
         if (!r.ok) throw new Error('Error al guardar');
@@ -175,8 +198,8 @@ export default function App() {
     <div style={{fontFamily:'Inter, system-ui', padding:16, maxWidth:900}}>
       <h2>BluePrints RT – Socket.IO vs STOMP</h2>
       <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
-        <label>Tecnología:</label>
-        <select value={tech} onChange={e=>setTech(e.target.value)}>
+        <label htmlFor="tech-selector">Tecnología:</label>
+        <select id="tech-selector" value={tech} onChange={e=>setTech(e.target.value)}>
           <option value="stomp">STOMP (Spring)</option>
           <option value="socketio">Socket.IO (Node)</option>
         </select>

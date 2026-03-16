@@ -15,6 +15,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class ValidationExceptionHandler {
 
+    private static final String PAYLOAD_VALIDATION_FAILED = "Payload validation failed";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResp<Map<String, String>>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -22,7 +24,7 @@ public class ValidationExceptionHandler {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResp<>(400, "Payload validation failed", errors));
+            .body(new ApiResp<>(400, PAYLOAD_VALIDATION_FAILED, errors));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -32,7 +34,7 @@ public class ValidationExceptionHandler {
                 errors.put(violation.getPropertyPath().toString(), violation.getMessage())
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResp<>(400, "Payload validation failed", errors));
+            .body(new ApiResp<>(400, PAYLOAD_VALIDATION_FAILED, errors));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -40,6 +42,6 @@ public class ValidationExceptionHandler {
         Map<String, String> errors = new LinkedHashMap<>();
         errors.put("body", "Invalid JSON payload");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResp<>(400, "Payload validation failed", errors));
+            .body(new ApiResp<>(400, PAYLOAD_VALIDATION_FAILED, errors));
     }
 }
