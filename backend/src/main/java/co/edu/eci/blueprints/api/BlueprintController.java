@@ -7,7 +7,10 @@ import co.edu.eci.blueprints.persistence.BlueprintPersistenceException;
 import co.edu.eci.blueprints.services.BlueprintsServices;
 import java.util.Set;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +22,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
 @RequestMapping("/api/blueprints")
-@CrossOrigin(origins = "http://localhost:5173")
+@Validated
 public class BlueprintController {
 
     private final BlueprintsServices services;
@@ -40,7 +43,7 @@ public class BlueprintController {
             @ApiResponse(responseCode = "200", description = "Lista de blueprints obtenida correctamente"),
             @ApiResponse(responseCode = "404", description = "No se encontraron blueprints para el autor")
         })
-    public ResponseEntity<ApiResp<Set<BlueprintDTO>>> getByAuthor(@RequestParam String author) {
+    public ResponseEntity<ApiResp<Set<BlueprintDTO>>> getByAuthor(@RequestParam @NotBlank String author) {
         try {
             Set<Blueprint> data = services.getBlueprintsByAuthor(author);
             Set<BlueprintDTO> dtoSet = data.stream().map(BlueprintMapper::toDTO).collect(java.util.stream.Collectors.toSet());
@@ -63,7 +66,7 @@ public class BlueprintController {
             @ApiResponse(responseCode = "200", description = "Blueprint obtenido correctamente"),
             @ApiResponse(responseCode = "404", description = "No se encontró el blueprint solicitado")
         })
-    public ResponseEntity<ApiResp<BlueprintDTO>> getByAuthorAndName(@PathVariable String author, @PathVariable String name) {
+    public ResponseEntity<ApiResp<BlueprintDTO>> getByAuthorAndName(@PathVariable @NotBlank String author, @PathVariable @NotBlank String name) {
         try {
             Blueprint data = services.getBlueprint(author, name);
             BlueprintDTO dto = BlueprintMapper.toDTO(data);
@@ -113,10 +116,7 @@ public class BlueprintController {
             @ApiResponse(responseCode = "409", description = "Error de persistencia"),
             @ApiResponse(responseCode = "500", description = "Error interno del servidor")
         })
-    public ResponseEntity<ApiResp<BlueprintDTO>> update(@PathVariable String author, @PathVariable String name,@Valid @RequestBody UpdateBlueprintRequest req) {
-        if (req.points() == null) {
-            return buildResponse(400, "Solicitud inválida: el campo 'points' no puede ser nulo", null);
-        }
+    public ResponseEntity<ApiResp<BlueprintDTO>> update(@PathVariable @NotBlank String author, @PathVariable @NotBlank String name,@Valid @RequestBody UpdateBlueprintRequest req) {
         try {
             List<PointDTO> points = req.points();
             Blueprint updatedBlueprint = new Blueprint(req.author(), req.name(), points.stream().map(BlueprintMapper::toEntity).toList());
@@ -144,7 +144,7 @@ public class BlueprintController {
             @ApiResponse(responseCode = "200", description = "Blueprint eliminado correctamente"),
             @ApiResponse(responseCode = "404", description = "No se encontró el blueprint solicitado")
         })
-    public ResponseEntity<ApiResp<Void>> delete(@PathVariable String author, @PathVariable String name) {
+    public ResponseEntity<ApiResp<Void>> delete(@PathVariable @NotBlank String author, @PathVariable @NotBlank String name) {
         try {
             services.deleteBlueprint(author, name);
             return buildResponse(200, "Deleted", null);
@@ -161,10 +161,20 @@ public class BlueprintController {
                 .body(new ApiResp<>(code, message, data));
     }
 
-    public record NewBlueprintRequest(@NotBlank String author,@NotBlank String name,@Valid java.util.List<PointDTO> points
+        public record NewBlueprintRequest(
+            @NotBlank(message = "author is required") String author,
+            @NotBlank(message = "name is required") String name,
+            @NotNull(message = "points is required")
+            @Size(max = 5000, message = "points size must be <= 5000")
+            @Valid java.util.List<PointDTO> points
     ) { }
 
-    public record UpdateBlueprintRequest(@NotBlank String author,@NotBlank String name,@Valid java.util.List<PointDTO> points
+        public record UpdateBlueprintRequest(
+            @NotBlank(message = "author is required") String author,
+            @NotBlank(message = "name is required") String name,
+            @NotNull(message = "points is required")
+            @Size(max = 5000, message = "points size must be <= 5000")
+            @Valid java.util.List<PointDTO> points
     ) { }
 }
 
