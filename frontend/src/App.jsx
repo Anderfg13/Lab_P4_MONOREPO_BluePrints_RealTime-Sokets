@@ -44,6 +44,25 @@ export default function App() {
   const stompRef = useRef(null)
   const unsubRef = useRef(null)
   const socketRef = useRef(null)
+  const pendingLatencyRef = useRef(new Map())
+
+  function pointKey(point) {
+    return `${point.x}:${point.y}`
+  }
+
+  function logLatencyIfPending(incomingPoints) {
+    if (!Array.isArray(incomingPoints) || incomingPoints.length !== 1) {
+      return
+    }
+    const key = pointKey(incomingPoints[0])
+    const startedAt = pendingLatencyRef.current.get(key)
+    if (!startedAt) {
+      return
+    }
+    const elapsed = Date.now() - startedAt
+    pendingLatencyRef.current.delete(key)
+    console.info(`[RT] latency ${elapsed} ms for point ${key}`)
+  }
 
   useEffect(() => {
     setErrorMsg('');
@@ -102,6 +121,7 @@ export default function App() {
       client.onConnect = () => {
         unsubRef.current = subscribeBlueprint(client, author, name, (upd)=> {
           console.log('STOMP update:', upd);
+          logLatencyIfPending(upd.points)
           setLocalPoints(prev => mergeIncomingPoints(prev, upd.points));
         })
       }
@@ -113,6 +133,7 @@ export default function App() {
       s.emit('join-room', room)
       s.on('blueprint-update', (upd)=> {
         console.log('Socket.IO update:', upd);
+        logLatencyIfPending(upd.points)
         setLocalPoints(prev => mergeIncomingPoints(prev, upd.points));
       })
     }
@@ -137,6 +158,8 @@ export default function App() {
         setErrorMsg(getValidationError(drawResult));
         return updated;
       }
+
+      pendingLatencyRef.current.set(pointKey(point), Date.now())
 
       // Enviar evento validado de dibujo
       if (tech === 'stomp' && stompRef.current?.connected) {
