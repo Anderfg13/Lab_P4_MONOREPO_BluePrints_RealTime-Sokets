@@ -11,6 +11,28 @@ function getValidationError(result) {
   return result.error?.issues?.[0]?.message ?? 'Payload inválido'
 }
 
+function mergeIncomingPoints(prevPoints, incomingPoints) {
+  if (!Array.isArray(incomingPoints) || incomingPoints.length === 0) {
+    return prevPoints
+  }
+
+  // If server sends a full snapshot, trust it.
+  if (incomingPoints.length > 1) {
+    return incomingPoints
+  }
+
+  // If server sends only one point (incremental update), append it.
+  const p = incomingPoints[0]
+  const last = prevPoints[prevPoints.length - 1]
+
+  // Avoid duplicating the same point when receiving own echo from WS.
+  if (last && last.x === p.x && last.y === p.y) {
+    return prevPoints
+  }
+
+  return [...prevPoints, p]
+}
+
 export default function App() {
   const [tech, setTech] = useState('stomp')
   const [author, setAuthor] = useState('juan')
@@ -80,8 +102,7 @@ export default function App() {
       client.onConnect = () => {
         unsubRef.current = subscribeBlueprint(client, author, name, (upd)=> {
           console.log('STOMP update:', upd);
-          // Actualizar puntos locales para redibujar correctamente
-          setLocalPoints(upd.points || []);
+          setLocalPoints(prev => mergeIncomingPoints(prev, upd.points));
         })
       }
       client.activate()
@@ -92,8 +113,7 @@ export default function App() {
       s.emit('join-room', room)
       s.on('blueprint-update', (upd)=> {
         console.log('Socket.IO update:', upd);
-        // Actualizar puntos locales para redibujar correctamente
-        setLocalPoints(upd.points || []);
+        setLocalPoints(prev => mergeIncomingPoints(prev, upd.points));
       })
     }
     return () => {
