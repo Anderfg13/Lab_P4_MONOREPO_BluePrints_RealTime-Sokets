@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
 @RequestMapping("/api/blueprints")
-@CrossOrigin(origins = "http://localhost:5173")
 @Validated
 public class BlueprintController {
 
