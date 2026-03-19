@@ -1,5 +1,5 @@
 # Lab P4 - BluePrints Real Time (Monorepo)
-# Lab P4 — BluePrints en Tiempo Real (Sockets & STOMP)
+
 
 > **Repositorio:** `DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets`  
 > **Front:** React + Vite (Canvas, CRUD, y selector de tecnología RT)  
@@ -146,6 +146,7 @@ En la interfaz: selecciona **Socket.IO** o **STOMP**, define `author` y `name`, 
 ## 📊 Entregables del equipo
 1. Código del Front integrado con **CRUD** y **RT** (Socket.IO o STOMP).  
 2. **Video corto** (≤ 90s) mostrando colaboración en vivo y operaciones CRUD.  
+  se encuentra en la carpeta de docs
 3. **README del equipo**: setup, endpoints usados, decisiones (rooms/tópicos), y (opcional) breve comparativa Socket.IO vs STOMP.
 
 ---
@@ -178,7 +179,11 @@ En la interfaz: selecciona **Socket.IO** o **STOMP**, define `author` y `name`, 
 MIT (o la definida por el curso/equipo).
 
 
+# Lab P4 - Solución 
+ **Documento:**
+ https://docs.google.com/document/d/1PxvjWKi7f80hp1fVLm8gVR7YhPoawfCOqp0ZoJShKoM/edit?usp=sharing
 
+ 
 ## 1. Resumen
 Este repositorio implementa BluePrints colaborativo en tiempo real para el laboratorio.
 
@@ -339,5 +344,4 @@ Recomendacion de mejora (no bloqueante):
 ## 8. Estado del item opcional
 - JWT + autorizacion por plano/sala: no implementado (item opcional en la guia).
 
-## 9. Licencia
-MIT (segun politica del curso/equipo).
+
