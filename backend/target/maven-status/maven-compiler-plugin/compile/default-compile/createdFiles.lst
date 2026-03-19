@@ -2,12 +2,14 @@ co\edu\eci\blueprints\filters\UndersamplingFilter.class
 co\edu\eci\blueprints\rt\BlueprintRTController.class
 co\edu\eci\blueprints\persistence\PostgresBlueprintPersistence.class
 co\edu\eci\blueprints\persistence\BlueprintNotFoundException.class
+co\edu\eci\blueprints\api\ValidationExceptionHandler.class
 co\edu\eci\blueprints\api\BlueprintController$NewBlueprintRequest.class
 co\edu\eci\blueprints\model\Point.class
 co\edu\eci\blueprints\dto\PointDTO.class
 co\edu\eci\blueprints\services\BlueprintsServices.class
 co\edu\eci\blueprints\filters\IdentityFilter.class
 co\edu\eci\blueprints\persistence\BlueprintPersistenceException.class
+co\edu\eci\blueprints\rt\WebSocketEventsLogger.class
 co\edu\eci\blueprints\api\BlueprintController.class
 co\edu\eci\blueprints\dto\BlueprintMapper.class
 co\edu\eci\blueprints\dto\DrawEvent.class
@@ -19,6 +21,7 @@ co\edu\eci\blueprints\filters\RedundancyFilter.class
 co\edu\eci\blueprints\persistence\InMemoryBlueprintPersistence.class
 co\edu\eci\blueprints\config\OpenApiConfig.class
 co\edu\eci\blueprints\filters\BlueprintsFilter.class
+co\edu\eci\blueprints\api\HealthController.class
 co\edu\eci\blueprints\persistence\BlueprintPersistence.class
 co\edu\eci\blueprints\rt\WebSocketConfig.class
 co\edu\eci\blueprints\dto\BlueprintDTO.class

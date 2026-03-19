@@ -184,15 +184,22 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payloadResult.data)
     })
-      .then(r => {
-        if (!r.ok) throw new Error('Error al crear');
+      .then(async r => {
+        if (!r.ok) {
+          let msg = 'Error al crear';
+          try {
+            const data = await r.json();
+            if (data && data.message) msg = data.message;
+          } catch {}
+          throw new Error(msg);
+        }
         return r.json();
       })
       .then(() => {
         setErrorMsg('Creado exitosamente');
       })
-      .catch(() => {
-        setErrorMsg('Error al crear');
+      .catch(err => {
+        setErrorMsg(err.message);
       });
   }
 
