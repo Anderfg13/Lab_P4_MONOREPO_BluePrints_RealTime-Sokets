@@ -344,4 +344,16 @@ Recomendacion de mejora (no bloqueante):
 ## 8. Estado del item opcional
 - JWT + autorizacion por plano/sala: no implementado (item opcional en la guia).
 
+---
+
+## 🚀 Ejecución con Docker Compose
+
+Para levantar todos los servicios (frontend y backend) usando Docker Compose, ejecuta:
+
+```
+docker-compose up --build
+```
+
+Esto construirá y levantará los contenedores definidos en el archivo docker-compose.yml.
+
 
