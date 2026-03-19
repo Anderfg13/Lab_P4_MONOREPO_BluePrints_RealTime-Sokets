@@ -45,7 +45,11 @@ public class BlueprintsServices {
      */
     @Transactional
     public void addNewBlueprint(Blueprint bp) throws BlueprintPersistenceException {
-        persistence.saveBlueprint(bp);
+        try {
+            persistence.saveBlueprint(bp);
+        } catch (BlueprintPersistenceException e) {
+            throw new BlueprintPersistenceException(e.getMessage());
+        }
     }
 
     /**

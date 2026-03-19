@@ -1,10 +1,18 @@
 package co.edu.eci.blueprints.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+
 /**
  * Data Transfer Object for Point entity.
  */
 public class PointDTO {
+    @Min(value = 0, message = "x must be >= 0")
+    @Max(value = 600, message = "x must be <= 600")
     private int x;
+
+    @Min(value = 0, message = "y must be >= 0")
+    @Max(value = 400, message = "y must be <= 400")
     private int y;
 
     /**

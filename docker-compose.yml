@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: blueprints_postgres
+    environment:
+      POSTGRES_DB: blueprintsdb
+      POSTGRES_USER: blueprintsuser
+      POSTGRES_PASSWORD: blueprints123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: blueprints_backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/blueprintsdb
+      SPRING_DATASOURCE_USERNAME: blueprintsuser
+      SPRING_DATASOURCE_PASSWORD: blueprints123
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    container_name: blueprints_frontend
+    environment:
+      VITE_API_BASE: http://localhost:8080/api
+      VITE_IO_BASE: http://localhost:8080/rt
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
