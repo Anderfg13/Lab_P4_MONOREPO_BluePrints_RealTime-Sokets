@@ -32,7 +32,12 @@ public class PostgresBlueprintPersistence implements BlueprintPersistence {
     @Override
     public void saveBlueprint(Blueprint bp) throws BlueprintPersistenceException {
         try {
+            if (existsBlueprint(bp.getAuthor(), bp.getName())) {
+                throw new BlueprintPersistenceException("Blueprint already exists: " + bp.getAuthor() + "/" + bp.getName());
+            }
             entityManager.persist(bp);
+        } catch (BlueprintPersistenceException e) {
+            throw e;
         } catch (Exception e) {
             throw new BlueprintPersistenceException("Error saving blueprint: " + e.getMessage());
         }
